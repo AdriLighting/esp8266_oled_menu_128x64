@@ -19,26 +19,7 @@
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
-#include "oled_def.h"    
-#ifdef ADAFRUIT_SD1306_LIB
-    #include <SPI.h>
-    #include <Wire.h>
-    #include <Adafruit_GFX.h>
-    #include <Adafruit_SSD1306.h>
-    Adafruit_SSD1306 display(128, 64, &Wire, -1);
-#endif
-#ifdef SD1306WIRE_LIB
-    #include <Wire.h>               // Only needed for Arduino 1.6.5 and earlier
-    #include "SSD1306Wire.h"        // legacy: #include "SSD1306.h"
-    SSD1306Wire display(0x3c, SDA, SCL);
-#endif
-
-#include "oled_display.h"
-#include "bmp.h"
-
-extern oled_menu_pos oled_menu_pos;
-
-
+#include <oled_display.h>
 
 // USER DECLAR OWN MENU
 oled_menu_create * oled_menu_home;              // demo menu 1
@@ -49,55 +30,22 @@ void m1_i1_m(boolean exec,   oled_menu_move move){oled_menu_init_menu (oled_menu
 void m2_i3_m(boolean exec,   oled_menu_move move){
     oled_display_mod        = oled_display_disp;
     oled_clear();
-    oled_draw_bmp  (0, 0, 128, 64, logo_bmp);
+    // oled_draw_bmp  (0, 0, 128, 64, logo_bmp);
     display.display();     
 }
 PROGMEM oled_menu_item list_m1 [] = {           // liste des fonction autribuer aux items
-//  TITRE           subtitle    db click bp 1   db click bp 2   db click bp 3   db click bp 4
-    {"lumierre",    "",         &m1_i1_m,		&om_tf,       &om_tf,       &om_tf},
-    {"temperature", "",         &om_tf,			&om_tf,       &om_tf,       &om_tf},
-    {"piscine",     "",			&om_tf,       	&om_tf,       &om_tf,       &om_tf},
+//  TITRE           subtitle    db click bp 1   db click bp 2 	db click bp 3 	db click bp 4
+    {"lumierre",    "",         &m1_i1_m,		&om_tf,       	&om_tf,       	&om_tf},
+    {"temperature", "",         &om_tf,			&om_tf,       	&om_tf,       	&om_tf},
+    {"piscine",     "",			&om_tf,       	&om_tf, 		&om_tf,       	&om_tf},
 
 };
 PROGMEM oled_menu_item list_m2 [] = { 
-    {"salon",       "",         &om_tf,       &om_tf,       &om_tf,       &om_tf},
-    {"cuisine",     "",         &om_tf,       &om_tf,       &om_tf,       &om_tf},
-    {"terasse",     "",         &om_tf,       &om_tf,       &om_tf,       &om_tf},
+    {"salon",       "",         &om_tf, 		&om_tf, 		&om_tf,       	&om_tf},
+    {"cuisine",     "",         &om_tf,       	&om_tf, 		&om_tf,       	&om_tf},
+    {"terasse",     "",         &om_tf,       	om_tf, 			&om_tf,       	&om_tf},
 
 };
-
-/* DIVERS EXEMPLE
-void oled_menu_create_items_effect_list(){
-	char buff[80];
-    for (int i = 0; i < effect_listCount; ++i) {
-    	sprintf(buff, "%s", effect_list[i].name);
-        oled_menu_effect_list->contents[i].name       = String(buff); 
-		oled_menu_effect_list->contents[i].subTitle   = ""; 
-		oled_menu_effect_list->contents[i].func_1     = &oled_menu_click_effectList; 
-		oled_menu_effect_list->contents[i].func_2     = &om_tf; 
-    } 
-
-	oled_menu_effect_list->size 			= effect_listCount;
-}
-
-template <typename Callable>
-void oled_menu_create_items(Callable f_1, Callable f_2, oled_menu_create * str) {
-    str->contents[0].name 		= "center"; 
-	str->contents[0].subTitle  	= ""; 
-	str->contents[0].func_1 	= f_1; 
-	str->contents[0].func_2 	= f_2; 
-	str->contents[1].name 		= "out"; 
-	str->contents[1].subTitle 	= ""; 
-	str->contents[1].func_1 	= f_1; 
-	str->contents[1].func_2 	= f_2; 
-	str->size 					= 2;  
-}
-void oled_menu_create_items_selectStrip() {
-    oled_menu_create_items(&oled_menu_click_home_effectList,	&om_tf, 	oled_menu_home_effect);
-	oled_menu_create_items(&oled_menu_click_home_color,			&om_tf, 	oled_menu_home_color);
-	oled_menu_create_items(&oled_menu_click_home_off,			&om_tf, 	oled_menu_home_off);
-}
-*/
 
 
 /*
@@ -116,7 +64,7 @@ void lg1(boolean exec, oled_menu_move move){
     }
     oled_display_mod        = oled_display_off;
     oled_clear();
-    oled_draw_bmp (0, 0, 128, 64, logo_bmp);
+    // oled_draw_bmp (0, 0, 128, 64, logo_bmp);
     display.display();   
 }   
 void lg2(boolean exec, oled_menu_move move){
@@ -129,7 +77,6 @@ void lg2(boolean exec, oled_menu_move move){
 PROGMEM oled_menu_longClick_1 oled_menu_longClick_1_list [] = { 
     { &lg1},
     { &lg2},
-    // { &lg2, oled_menu_home}, POUET Pouet
 };
 PROGMEM oled_menu_longClick_2 oled_menu_longClick_2_list [] = { 
 
@@ -194,16 +141,22 @@ void setup() {
         oled_menu_array[i]->clickmoveUp     = true; // REMPLACER L'ACTION SIMPL CLICK PAR L'ACTION DB CLICK
         oled_menu_array[i]->clickmoveDown   = true; // REMPLACER L'ACTION SIMPL CLICK PAR L'ACTION DB CLICK
         oled_menu_array[i]->clickmoveFunc   = 1;    // CHOIX DE LA FONCTION DB CLICK (0 = FUNC1 - 1 = FUNC2)
-        oled_menu_array[i]->currseur        = 0;
+
+        oled_menu_array[i]->cursor          = 0;
         oled_menu_array[i]->startItem       = 0;
-        oled_menu_array[i]->itemsCnt        = 0;      
+        oled_menu_array[i]->itemsCnt        = 0; 
+
+        oled_menu_array[i]->item_perPage    = 3;
+
+        oled_menu_array[i]->i_yMenu         = 20;
+        oled_menu_array[i]->i_xTitle        = 10;
+        oled_menu_array[i]->i_yTitle        = 0;            
+        oled_menu_array[i]->i_xSubTitle     = 12;
 
     }
 
-
     // DEFINE MAIN MENU
     oled_menu_set_main(oled_menu_home);
-
 
     // ativation du menu (click bp, requette, etc....)
     // oled_menu_click_initMenu(oled_menu_home);
@@ -213,14 +166,15 @@ void setup() {
                         oled_display_off    : le menu est effacer
                         oled_display_menu   : le menu est actif
     */
-    oled_display_mod    = oled_display_off;  
+    oled_display_mod    = 	oled_display_menu; 
+    oled_menu_home 		-> 	init_menu();
 
     // INITIALISATION DES MENU DONE !
 
 
     // DISPLAY BMP NOOBPI FOR FUN
     oled_clear();
-    oled_draw_bmp  (0, 0, 128, 60, logo_bmp); 
+    // oled_draw_bmp  (0, 0, 128, 60, logo_bmp); 
     display.display();
 
 }

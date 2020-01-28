@@ -1,8 +1,45 @@
 #ifndef OLED_DISPLAY_H
    	#define OLED_DISPLAY_H
 	#include <Arduino.h>
+	
+	// // #define MODULE_TEST
+	// #define MODULE_2RINGS
+	// // #define MODULE_DA
 
-	#include "oled_def.h"    
+	#define MODULE_DEFAULT
+
+	#ifdef MODULE_DEFAULT
+		#define ADAFRUIT_SD1306_LIB
+		#define FUNC_ITEM_1 1
+		#define FUNC_ITEM_2 2
+		#define FUNC_ITEM_3 3
+		#define FUNC_ITEM_4 4
+	#endif
+	#ifdef MODULE_DA
+		#define SD1306WIRE_LIB
+		#define FUNC_ITEM_1 1
+		#define FUNC_ITEM_2 2
+		#define FUNC_ITEM_3 3
+		#define FUNC_ITEM_4 4
+	#endif
+	#ifdef MODULE_2RINGS
+		#define SD1306WIRE_LIB
+		#define FUNC_ITEM_1 1
+		#define FUNC_ITEM_2 2
+	#endif
+
+
+    #ifdef ADAFRUIT_SD1306_LIB
+        #include <Adafruit_SSD1306.h>
+        extern Adafruit_SSD1306 display;
+    #endif
+    #ifdef SD1306WIRE_LIB
+        #include "SSD1306Wire.h"        // legacy: #include "SSD1306.h"
+        extern SSD1306Wire display;
+    #endif
+
+	#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
 
 	enum oled_display_mods { 
 	    oled_display_menu,
@@ -75,17 +112,30 @@
 			boolean 			clickmoveDown;
 			int 				clickmoveFunc;
 
-			int currseur 		= 0;
+			String starterItem;
+			int pos;
+			
+			int cursor 			= 0;
 			int itemsCnt 		= 0;
 			int startItem		= 0;
-			
+			int item_perPage	= 0;
+
+			int i_yMenu			= 0;
+			int i_xSubTitle 	= 0;
+			int i_xTitle 		= 0;
+			int i_yTitle 		= 0;
+
+
 			oled_menu_create(char * sName);
-			void set_subtitle (String str);
-			void print();
-			void create_menu();
-			void init_menu();
-			void create_menu_items(int startItem, int starMenu, int item_perPage) ;
-			void create_menu_header(char * title, int currPos, int starMenu, int starHeader, int titleLeft, int subTitleLeft);
+			void 	setPos(boolean up, int size);
+			int 	getPos();
+			String 	getItemName();
+			void 	set_subtitle (String str);
+			void 	print();
+			void 	create_menu();
+			void 	init_menu();
+			void 	create_menu_items() ;
+			void 	create_menu_header(char * title, int currPos, int starMenu, int starHeader, int titleLeft, int subTitleLeft);
 	};
 
 
@@ -143,33 +193,6 @@
 	void oled_menu_long_click_4(oled_menu_move move);
 #endif	
 	
-	//
-	// CLASS POUR LA NAVIGATION
-	// *****************************************************************************************************
-
-	class oled_menu_pos {
-		public:
-			String starterItem 	= "";
-			int menu_pos 		= 0;
-
-			int currseur 		= 0;
-			int itemsCnt 		= 0;
-			int startItem		= 0;
-
-			int starMenu		= 0;
-			int subTitleLeft 	= 0;
-			int titleLeft 		= 0;
-			int starHeader		= 0;
-
-			int item_perPage	= 0;
-
-			oled_menu_pos();
-			void 	print();
-			void 	setPos(boolean up, int size);
-			int 	getPos();
-			String 	getItemName();
-	};	
-
 
 	//
 	// DIVERS

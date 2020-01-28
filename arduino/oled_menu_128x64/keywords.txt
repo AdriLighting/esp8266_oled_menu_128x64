@@ -1,0 +1,35 @@
+###########################################
+# Syntax Coloring Map For OLED-menu-library
+###########################################
+
+###########################################
+# Datatypes (KEYWORD1)
+###########################################
+
+oled_menu_create	KEYWORD1
+oled_menu_lg	KEYWORD1
+oled_menu_current	KEYWORD1
+oled_menu_array	KEYWORD1
+
+
+###########################################
+# Methods and Functions (KEYWORD2)
+###########################################
+
+oled_display	KEYWORD1
+oled_menu_init_menu		KEYWORD2
+oled_menu_click_initMenu		KEYWORD2
+oled_menu_set_main		KEYWORD2
+oled_menu_set_lg		KEYWORD2
+
+oled_menu_create_items_v2		KEYWORD2
+oled_menu_click_move		KEYWORD2
+oled_menu_click_1_set		KEYWORD2
+oled_menu_click_2_set		KEYWORD2
+oled_menu_click_3_set		KEYWORD2
+oled_menu_click_4_set		KEYWORD2
+oled_menu_long_click_1		KEYWORD2
+oled_menu_long_click_2		KEYWORD2
+oled_menu_long_click_3		KEYWORD2
+oled_menu_long_click_4		KEYWORD2
+
