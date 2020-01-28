@@ -279,9 +279,9 @@ void oled_menu_create::create_menu() {
 
 // INITIALISATION DU MENU QUAND IL SERA CHARGER
 void oled_menu_create::init_menu(){
-	oled_menu_pos.currseur 	= 0;
-	oled_menu_pos.itemsCnt	= 0;
-	oled_menu_pos.startItem	= 0;
+	oled_menu_pos.currseur 	= currseur;
+	oled_menu_pos.itemsCnt	= itemsCnt;
+	oled_menu_pos.startItem	= startItem;
 	oled_menu_current 		= this;
 	create_menu();
 }
