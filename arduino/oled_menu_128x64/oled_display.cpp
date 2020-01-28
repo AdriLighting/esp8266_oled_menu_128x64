@@ -1,27 +1,34 @@
-#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
-
-#include <Adafruit_SSD1306.h>
-extern Adafruit_SSD1306 display;
-
-
 /*
-	24/01/2020 15:03:48 : mise en udf de mes fonction en vrac pour un ecran oled
+	24/01/2020 15:03:48 : mise en forme de mes fonction en vrac pour un ecran oled
 
-	MICRO UDF POUR CREATION DE MENU POUR L'ECRAN OLED 128x64 MONOCHROME
-	AUTHOR : ADRILIGHTING
+	MICRO LIBRAIRIE POUR CREATION DE MENU POUR L'ECRAN OLED 128x64 MONOCHROME
+	AUTEUR 						: ADRILIGHTING
 	COMPATIBLE BOARD 			: ESP8266 > 2.5
 	EXEMPLE 					: oled_menu_128x64.ino
 	LIBRAIRIE EXTERNE UTILISER 	: 	
-									<SPI.h>					: FROM ESP8266 2.6.3
-									<Wire.h>				: FROM ESP8266 2.6.3
-		Adafruit-GFX-Library-1.5.6 	<Adafruit_GFX.h>		: https://github.com/adafruit/Adafruit-GFX-Library
-		Adafruit_SSD1306-master 	<Adafruit_SSD1306.h>	: https://github.com/adafruit/Adafruit_SSD1306	
+										<SPI.h>					: FROM ESP8266 2.6.3
+										<Wire.h>				: FROM ESP8266 2.6.3
+		ADAFRUIT LIB
+		Adafruit-GFX-Library-1.5.6 		<Adafruit_GFX.h>		: https://github.com/adafruit/Adafruit-GFX-Library
+		Adafruit_SSD1306-master 		<Adafruit_SSD1306.h>	: https://github.com/adafruit/Adafruit_SSD1306	
+
+		ThingPulse OLED SSD1306 (ESP8266/ESP32/Mbed-OS) 
+		esp8266-oled-ssd1306-master 	"SSD1306Wire.h" 		: https://github.com/ThingPulse/esp8266-oled-ssd1306/blob/master/src/SSD1306Wire.h
 	
-	AFAIRE :
-		FONCTION POUR MEMORISER LE DERNIER MENU + CURSEUR
-			Permettra d'effacer le menu pour afficher d'autre donnée puis de réafficher le menu sans devoir tout réinitialiser
-		FONCTION POUR AFFICHER DES DONNEES EXTERN (bitmap, statu serveur, etc...)
 */
+
+
+#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
+#include "oled_def.h"    
+#ifdef ADAFRUIT_SD1306_LIB
+	#include <Adafruit_SSD1306.h>
+	extern Adafruit_SSD1306 display;
+#endif
+#ifdef SD1306WIRE_LIB
+    #include "SSD1306Wire.h"        // legacy: #include "SSD1306.h"
+    extern SSD1306Wire display;
+#endif
 
 #include "oled_display.h"
 #include "bmp.h"
@@ -70,10 +77,10 @@ void oled_menu_pos::print(){
 void oled_menu_pos::setPos(boolean up, int size) {
 	int max;
 	int pos = getPos();
-	String mName = oled_menu_current->name;
+	char * mName = oled_menu_current->name;
 	String iName = oled_menu_current->contents[pos].name;	
 	#ifdef DEBUG
-		Serial.printf("\n[oled_menu_setPos] menu: %s - old item: %s - old currPos: %d\n", mName.c_str(), iName.c_str(), currseur);
+		Serial.printf("\n[oled_menu_setPos] menu: %s - old item: %s - old currPos: %d\n", mName, iName.c_str(), currseur);
 	#endif
 	if (up) {
         currseur++;
@@ -129,14 +136,22 @@ void oled_menu_pos::setPos(boolean up, int size) {
 		iName = oled_menu_current->contents[pos].name;	
 		Serial.printf("new item: %s\n", iName.c_str());
 		Serial.printf("[oled_menu_setPos] - end\n");
-	#endif    
+	#endif
+	oled_menu_current->currseur 	= currseur;
+	oled_menu_current->startItem 	= startItem;
+	oled_menu_current->itemsCnt 	= itemsCnt;	    
 }
 
 int oled_menu_pos::getPos(){
 	int pos = currseur + startItem;
 	return pos;
 }
-
+String oled_menu_pos::getItemName(){
+	int pos = currseur + startItem;
+	// String mName = oled_menu_current->name;
+	String iName = oled_menu_current->contents[pos].name;
+	return iName;
+}
 
 //
 // CREEATION DES MENU 
@@ -151,7 +166,7 @@ int oled_menu_array_nbr = 0;
 
 
 
-oled_menu_create::oled_menu_create(String sName) {
+oled_menu_create::oled_menu_create(char * sName) {
 	if (oled_menu_array_nbr < OLED_MENU_ITEMS_MAX) {
 		name = sName;
 		oled_menu_array[oled_menu_array_nbr++] = this;
@@ -160,7 +175,7 @@ oled_menu_create::oled_menu_create(String sName) {
 
 // POUR DEBUG
 void oled_menu_create::print() {
-	Serial.printf("\n[print menu] : %s - size:%d\n",name.c_str(), size);
+	Serial.printf("\n[print menu] : %s - size:%d\n",name, size);
 	for( int i = 0; i < size; i++) {
         String s= "[" + String(i) + "]";
         while (s.length()<4) s+=" ";
@@ -171,9 +186,11 @@ void oled_menu_create::print() {
 }
 
 // CREATIONS DU TITRE + SOUSTITRE + CURSEUR 
-void oled_menu_create::create_menu_header(String title, int currPos, int starMenu, int starHeader, int titleLeft, int subTitleLeft) {
-
-	display.clearDisplay();
+#ifdef ADAFRUIT_SD1306_LIB
+void oled_menu_create::create_menu_header(char * title, int currPos, int starMenu, int starHeader, int titleLeft, int subTitleLeft) {
+	int pos = oled_menu_pos.getPos();
+	String subTitle = oled_menu_current->contents[pos].subTitle;	
+	oled_clear();
 	display.setTextSize(1);
 	display.setTextColor(WHITE);
 	display.setCursor(titleLeft, starHeader);
@@ -191,13 +208,33 @@ void oled_menu_create::create_menu_header(String title, int currPos, int starMen
 	display.println(">"); 
 
 }
+#endif
+#ifdef SD1306WIRE_LIB
+void oled_menu_create::create_menu_header(char * title, int currPos, int starMenu, int starHeader, int titleLeft, int subTitleLeft) {
+	int pos = oled_menu_pos.getPos();
+	String subTitle = oled_menu_current->contents[pos].subTitle;	
+	oled_clear();
+	display.setFont(Dialog_plain_11);
+	display.drawString(titleLeft, starHeader, title);
+	if (starMenu>=20) {
+		if (subTitle != "") {
+			display.drawString(subTitleLeft, starHeader+10, subTitle);
+		}
+	}
+	if (currPos == 0) currPos = starMenu;
+	else currPos = (currPos*10) + starMenu; 
+	display.setFont(Dialog_plain_10);
+	display.drawString(0, currPos, ">");
+}
+#endif
+
 
 // CREATIONS DES ITEMS
+#ifdef ADAFRUIT_SD1306_LIB
 void oled_menu_create::create_menu_items(int startItem, int starMenu, int item_perPage) {
 	int start 	= starMenu;
 	int cnt 	= 0;
 	int maxCnt 	= item_perPage;
-
 	for(int i=startItem; i < size ; i++) {
 		display.setCursor(10, start);
 		display.println(contents[i].name);
@@ -208,10 +245,26 @@ void oled_menu_create::create_menu_items(int startItem, int starMenu, int item_p
 
 	display.display();
 }
+#endif
+#ifdef SD1306WIRE_LIB
+void oled_menu_create::create_menu_items(int startItem, int starMenu, int item_perPage) {
+	int start 	= starMenu;
+	int cnt 	= 0;
+	int maxCnt 	= item_perPage;
+	display.setFont(Dialog_plain_11);
+	for(int i=startItem; i < size ; i++) {
+		display.drawString(10, start, contents[i].name);
+		start += 10;
+		cnt++;
+		if (cnt > (maxCnt)) break;
+	}
+
+	display.display();
+}
+#endif
 
 // CREATIONS DU MENU (SERVIRA AUSSI POUR LA NAVIGATION PAR CLICK)
 void oled_menu_create::create_menu() {
-	oled_menu_setOption();
 	create_menu_header(
 		name,
 		oled_menu_pos.currseur,
@@ -235,6 +288,11 @@ void oled_menu_create::init_menu(){
 void oled_menu_init_menu (oled_menu_create * m) {
 	m->init_menu();
 }
+void oled_menu_create::set_subtitle (String str) {
+	int pos = oled_menu_pos.getPos();
+	contents[pos].subTitle = str;
+}
+
 
 //
 // GESTION DES CLICK BOUTON POUSSOIR
@@ -258,38 +316,42 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 }
 
 
-int oled_menu_optCount = 0;
-void oled_menu_setOption(oled_menu_create * m, String name){
-	if (oled_menu_getMenu(oled_menu_current, m)) { m->subTitle = name; }
-}
-void oled_menu_setOption(){
-	if (oled_menu_optCount <= 0) return;
-
-	for(int i=0; i < oled_menu_optCount ; i++) {
- 		oled_menu_options_list[i].option();
-	}		
-}
-
 
 // POUR LA NAVIGATION
 	void oled_menu_set_main(oled_menu_create * m) { oled_menu_main = m; }
 	void oled_menu_click_move(boolean up){ 		// sipml click bp 1 || bp 2
 		int pos = oled_menu_pos.getPos();
+		boolean exec = true;
 		if (oled_display_mod!= oled_display_menu) 	{
-			oled_menu_click_initMenu(oled_menu_main); 
+			if (oled_display_mod == oled_display_disp) {
+				oled_display_mod = oled_display_menu;
+				oled_menu_current->create_menu();
+			} else oled_menu_click_initMenu(oled_menu_main); 
 		} else {
 			if (up) {
 				if (oled_menu_current->clickmoveUp)	oled_menu_click_move(up, oled_menu_current);
 				else {
-					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1();
-					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2();
+					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1(exec, oled_menu_move_up);
+					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2(exec, oled_menu_move_up);
+			#ifdef FUNC_ITEM_3
+					if (oled_menu_current->clickmoveFunc == 2) oled_menu_current->contents[pos].func_3(exec, oled_menu_move_up);
+			#endif	
+			#ifdef FUNC_ITEM_4
+					if (oled_menu_current->clickmoveFunc == 3) oled_menu_current->contents[pos].func_4(exec, oled_menu_move_up);
+			#endif
 				}				
 			} 
 			if (!up) {
 				if (oled_menu_current->clickmoveDown)	oled_menu_click_move(up, oled_menu_current);
 				else {
-					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1();
-					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2();
+					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1(exec, oled_menu_move_down);
+					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2(exec, oled_menu_move_down);
+			#ifdef FUNC_ITEM_3
+					if (oled_menu_current->clickmoveFunc == 2) oled_menu_current->contents[pos].func_3(exec, oled_menu_move_down);
+			#endif	
+			#ifdef FUNC_ITEM_4
+					if (oled_menu_current->clickmoveFunc == 3) oled_menu_current->contents[pos].func_4(exec, oled_menu_move_down);
+			#endif					
 				}
 			} 
 			
@@ -299,14 +361,42 @@ void oled_menu_setOption(){
 
 
 // POUR EFFECTUER L'ACTION ATTRIBUER A L'ITEM SELECTIONNER
-	void oled_menu_click_1_set(){ 				// db click bp 1
+	void oled_menu_click_1_set(oled_menu_move move){ 				// db click bp 1
+		#ifdef DEBUG
+		Serial.printf("\n[oled_menu_click_1_set]\n");
+		#endif
+		if (oled_display_mod != oled_display_menu) return;
 		int pos = oled_menu_pos.getPos();
-		oled_menu_current->contents[pos].func_1();
+		oled_menu_current->contents[pos].func_1(true, move);
 	}
-	void oled_menu_click_2_set(){ 				// db click bp 1
+	void oled_menu_click_2_set(oled_menu_move move){ 				// db click bp 2
+		#ifdef DEBUG
+		Serial.printf("\n[oled_menu_click_2_set]\n");
+		#endif		
+		if (oled_display_mod != oled_display_menu) return;
 		int pos = oled_menu_pos.getPos();
-		oled_menu_current->contents[pos].func_2();
+		oled_menu_current->contents[pos].func_2(true, move);
 	}
+#ifdef FUNC_ITEM_3
+	void oled_menu_click_3_set(oled_menu_move move){ 				// db click bp 3
+		#ifdef DEBUG
+		Serial.printf("\n[oled_menu_click_3_set]\n");
+		#endif
+		if (oled_display_mod != oled_display_menu) return;
+		int pos = oled_menu_pos.getPos();
+		oled_menu_current->contents[pos].func_3(true, move);
+	}
+#endif	
+#ifdef FUNC_ITEM_4
+	void oled_menu_click_4_set(oled_menu_move move){ 				// db click bp 4
+		#ifdef DEBUG
+		Serial.printf("\n[oled_menu_click_4_set]\n");
+		#endif		
+		if (oled_display_mod != oled_display_menu) return;
+		int pos = oled_menu_pos.getPos();
+		oled_menu_current->contents[pos].func_4(true, move);
+	}
+#endif
 
 
 // POUR EFFECTUER L'ACTION ATTRIBUER AU MENU SLECTIONNER
@@ -317,41 +407,61 @@ bool isSelectedMenu(oled_menu_create * m){
 void oled_menu_set_lg(oled_menu_create * m) { oled_menu_lg = m; }
 
 int oled_menu_longClick_1_count = 0;
-void oled_menu_long_click_1() { 			// longClick bp 1
+void oled_menu_long_click_1(oled_menu_move move) { 			// longClick bp 1
 	if (oled_menu_longClick_1_count <= 0) return;
 
 	for(int i=0; i < oled_menu_longClick_1_count ; i++) {
-		oled_menu_longClick_1_list[i].func_1(false);
-		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_1_list[i].func_1(true);
+		oled_menu_longClick_1_list[i].func_1(false, move);
+		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_1_list[i].func_1(true, move);
 	}	
 }
 
 int oled_menu_longClick_2_count = 0;
-void oled_menu_long_click_2() { 			// longClick bp 2
+void oled_menu_long_click_2(oled_menu_move move) { 			// longClick bp 2
 	if (oled_menu_longClick_2_count <= 0) return;
 
 	for(int i=0; i < oled_menu_longClick_2_count ; i++) {
-		oled_menu_longClick_2_list[i].func_1(false);
-		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_2_list[i].func_1(true);
+		oled_menu_longClick_2_list[i].func_1(false, move);
+		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_2_list[i].func_1(true, move);
 	}	
 }
+#ifdef FUNC_ITEM_3
+int oled_menu_longClick_3_count = 0;
+void oled_menu_long_click_3(oled_menu_move move) { 			// longClick bp 3
+	if (oled_menu_longClick_3_count <= 0) return;
+
+	for(int i=0; i < oled_menu_longClick_3_count ; i++) {
+		oled_menu_longClick_3_list[i].func_1(false, move);
+		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_3_list[i].func_1(true, move);
+	}	
+}
+#endif	
+#ifdef FUNC_ITEM_4
+int oled_menu_longClick_4_count = 0;
+void oled_menu_long_click_4(oled_menu_move move) { 			// longClick bp 4
+	if (oled_menu_longClick_4_count <= 0) return;
+
+	for(int i=0; i < oled_menu_longClick_4_count ; i++) {
+		oled_menu_longClick_4_list[i].func_1(false, move);
+		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_4_list[i].func_1(true, move);
+	}	
+}
+#endif
 
 
 //
 // CREATION DES ITEMS + FONCTION ATTRIBUER AUX ITEMS 
 // *****************************************************************************************************
 
-void test_f1(){
+void om_tf(boolean exec, oled_menu_move move){
 	int pos = oled_menu_pos.getPos();
 	String mName = oled_menu_current->name;
 	String iName = oled_menu_current->contents[pos].name;
-	Serial.printf("\n[demo func_1] menu: %s - item: %s\n", mName.c_str(), iName.c_str() );
-}
-void test_f2(){
-	int pos = oled_menu_pos.getPos();
-	String mName = oled_menu_current->name;
-	String iName = oled_menu_current->contents[pos].name;
-	Serial.printf("\n[demo test_f2] menu: %s - item: %s\n", mName.c_str(), iName.c_str() );
+	Serial.printf("[func] menu: %s - item: %s - item pos: %d\n", mName.c_str(), iName.c_str(), pos );
+	// char buffer[200];
+	// sprintf(buffer, "[func] menu: %s - item: %s - item pos: %d\n", mName.c_str(), iName.c_str(), pos);
+	// debug(buffer);
+
 }
 
 		
@@ -375,7 +485,38 @@ void oled_menu_create_items_v2(oled_menu_item list[], int size, oled_menu_create
 		m->contents[i].name 	= String(buffer); 
 		m->contents[i].func_1 	= list[i].func_1; 
 		m->contents[i].func_2 	= list[i].func_2; 
+		#ifdef FUNC_ITEM_3
+		m->contents[i].func_3 	= list[i].func_3; 
+		#endif	
+		#ifdef FUNC_ITEM_4
+		m->contents[i].func_4 	= list[i].func_4; 
+		#endif		
 	}	
 	m->size 	= size;  	
 }
 
+
+
+
+void oled_clear() {
+	#ifdef ADAFRUIT_SD1306_LIB
+	    display.clearDisplay();
+	#endif
+	#ifdef SD1306WIRE_LIB
+	    display.clear();
+	#endif    
+}
+#ifdef SD1306WIRE_LIB
+	void oled_draw_bmp(int16_t xMove, int16_t yMove, int16_t width, int16_t height, const uint8_t bitmap[]){
+		 // display.drawXbm(xMove, yMove, width, height, xbm);   
+		 display.drawBitmap  (xMove, yMove, bitmap, width, height, 1);  
+	}
+#endif  
+#ifdef ADAFRUIT_SD1306_LIB
+	void oled_draw_bmp(int16_t x, int16_t y, int16_t w, int16_t h, const uint8_t bitmap[]){
+		 display.drawBitmap  (x, y, bitmap, w, h, 1);  
+	}
+#endif
+
+
+ 
