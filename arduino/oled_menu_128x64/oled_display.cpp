@@ -15,6 +15,54 @@
 		ThingPulse OLED SSD1306 (ESP8266/ESP32/Mbed-OS) 
 		esp8266-oled-ssd1306-master 	"SSD1306Wire.h" 		: https://github.com/ThingPulse/esp8266-oled-ssd1306/blob/master/src/SSD1306Wire.h
 	
+	DOC :
+	MENU :
+		chaque menu est a jouter par un objet de la class oled_menu_create.
+			les menu sont tous independant et ne comporte pas de sous menu.
+			chaque menu contient ses propre items ainsi que leur parametres de poisition et de style.
+			pour naviguer entre diffrents menu il faudra passer par une fonction attribuer a un item qui permettera d'afficher le menu voullu.
+	ITEMS :
+		pours attribhuer des items a un menu il faudra passer par la structure oled_menu_def faisant partie de la class oled_menu_create:
+			la structure oled_menu_def comporte :
+				la limite est des 25 items par menu mais peut etre modifier suivant la memoire flash dont vous disposer.
+				String name; 							= le nom sous lequell sera afficher l'item.
+				String subTitle; 						= le sous titre attribuer a l'item quand celui-ci sera selectionner.
+				void (*func_1)(oled_menu_move move); 	= fonction atribuer a l'item selectionner
+				void (*func_2)(oled_menu_move move);	 	
+				void (*func_3)(oled_menu_move move); 	
+				void (*func_4)(oled_menu_move move); 	
+					param 
+						oled_menu_move move : servira a indiquer si la fonction est un mouvement d'item ou de menu, ou autre
+												oled_menu_move_up,
+											    oled_menu_move_down,
+											    oled_menu_move_next,
+											    oled_menu_move_back,
+											    oled_menu_move_none
+					fonction :
+						les fonctions de la structure oled_menu_def sont atribuer par default a un SIMPLE CLIQUE d'un bouton poussoir
+							Exemples:
+								if ((digitalread(bp_1, pull)) oled_menu_click_1_set(oled_menu_move move);
+								if ((digitalread(bp_2, pull)) oled_menu_click_2_set(oled_menu_move move);
+								if ((digitalread(bp_3, pull)) oled_menu_click_3_set(oled_menu_move move);
+								if ((digitalread(bp_4, pull)) oled_menu_click_4_set(oled_menu_move move);
+				Exemples:
+					obj_menu->struct_items[nbr].name 			= myItem.
+					obj_menu->struct_items[nbr].subTitle 		= myItemSubtitle.
+					obj_menu->struct_items[nbr].func_1|2|3|4 	= myItemfunc_1|2|3|4 
+		
+		la structure oled_menu_item permet de creer un liste d'item et de leur fonction, pour ensuite les attribuer au menu voullu avec la fonction oled_menu_create_items_v2 :
+			Exemples :
+				PROGMEM oled_menu_item list_m1 [] = {           
+				    {"i1",  "", &func1, &func2, &func3, &func4},
+				    {"i2",  "", &func1, &func2, &func3, &func4},
+				};
+				oled_menu_create * oled_menu_home;  
+				oled_menu_home    = new oled_menu_create("oled_menu_home")
+				oled_menu_create_items_v2(list_m1, ARRAY_SIZE(list_m1), oled_menu_home);  
+
+		
+					boolean exec 			: servira uniquement pour une fonction declencher pour un LONG CLICK sur un bouton poussoir.
+												(a modifier par lavenir si je trouve le moyen de passer le pointeur d'un objet dans la data d'une structure)	
 */
 
 #include "oled_display.h"
@@ -35,9 +83,10 @@
 oled_display_mods   oled_display_mod;
 oled_menu_position  oled_menu_getPos;
 
-#define DEBUG
-
-
+String oled_menu_starterItem;
+int oled_menu_pos;
+			
+	#define DEBUG
 
 //
 // CURSOR POSTION
@@ -124,6 +173,7 @@ void oled_menu_create::setPos(boolean up, int size) {
 // MISE EN MEMOIRE DES POINTEURS 
 oled_menu_create * oled_menu_lg; 			
 oled_menu_create * oled_menu_main; 			
+oled_menu_create * oled_menu_old; 			
 oled_menu_create * oled_menu_current; 			
 oled_menu_create * oled_menu_array[OLED_MENU_ITEMS_MAX];
 int oled_menu_array_nbr = 0;
@@ -240,6 +290,8 @@ void oled_menu_create::create_menu() {
 
 // INITIALISATION DU MENU QUAND IL SERA CHARGER
 void oled_menu_create::init_menu(){
+	oled_menu_old 			= oled_menu_current;
+	lastSelectedItem 		= getItemName();
 	oled_menu_current 		= this;
 	create_menu();
 }
@@ -294,12 +346,16 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 }
 
 
-
 // POUR LA NAVIGATION
+void print_move ( oled_menu_move move ) ;
+void oled_menu_arborescence_add(oled_menu_move move) {
+	if ((move == oled_menu_move_next) || (move == oled_menu_move_back)) print_move ( move ) ;
+}
+
+
 	void oled_menu_set_main(oled_menu_create * m) { oled_menu_main = m; oled_menu_current = m;}
 	void oled_menu_click_move(boolean up){ 		// sipml click bp 1 || bp 2
 		int pos = oled_menu_current->getPos();
-		boolean exec = true;
 		if (oled_display_mod!= oled_display_menu) 	{
 			if (oled_display_mod == oled_display_disp) {
 				oled_display_mod = oled_display_menu;
@@ -307,28 +363,28 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 			} else oled_menu_click_initMenu(oled_menu_main); 
 		} else {
 			if (up) {
-				if (oled_menu_current->clickmoveUp)	oled_menu_click_move(up, oled_menu_current);
+				if (oled_menu_current->clickmoveUp)	{oled_menu_click_move(up, oled_menu_current);}
 				else {
-					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1(exec, oled_menu_move_up);
-					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2(exec, oled_menu_move_up);
+					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1(oled_menu_move_up);
+					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2(oled_menu_move_up);
 			#ifdef FUNC_ITEM_3
-					if (oled_menu_current->clickmoveFunc == 2) oled_menu_current->contents[pos].func_3(exec, oled_menu_move_up);
+					if (oled_menu_current->clickmoveFunc == 2) oled_menu_current->contents[pos].func_3(oled_menu_move_up);
 			#endif	
 			#ifdef FUNC_ITEM_4
-					if (oled_menu_current->clickmoveFunc == 3) oled_menu_current->contents[pos].func_4(exec, oled_menu_move_up);
+					if (oled_menu_current->clickmoveFunc == 3) oled_menu_current->contents[pos].func_4(oled_menu_move_up);
 			#endif
 				}				
 			} 
 			if (!up) {
-				if (oled_menu_current->clickmoveDown)	oled_menu_click_move(up, oled_menu_current);
+				if (oled_menu_current->clickmoveDown)	{oled_menu_click_move(up, oled_menu_current);}
 				else {
-					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1(exec, oled_menu_move_down);
-					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2(exec, oled_menu_move_down);
+					if (oled_menu_current->clickmoveFunc == 0) oled_menu_current->contents[pos].func_1(oled_menu_move_down);
+					if (oled_menu_current->clickmoveFunc == 1) oled_menu_current->contents[pos].func_2(oled_menu_move_down);
 			#ifdef FUNC_ITEM_3
-					if (oled_menu_current->clickmoveFunc == 2) oled_menu_current->contents[pos].func_3(exec, oled_menu_move_down);
+					if (oled_menu_current->clickmoveFunc == 2) oled_menu_current->contents[pos].func_3(oled_menu_move_down);
 			#endif	
 			#ifdef FUNC_ITEM_4
-					if (oled_menu_current->clickmoveFunc == 3) oled_menu_current->contents[pos].func_4(exec, oled_menu_move_down);
+					if (oled_menu_current->clickmoveFunc == 3) oled_menu_current->contents[pos].func_4(oled_menu_move_down);
 			#endif					
 				}
 			} 
@@ -345,7 +401,8 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 		#endif
 		if (oled_display_mod != oled_display_menu) return;
 		int pos = oled_menu_current->getPos();
-		oled_menu_current->contents[pos].func_1(true, move);
+		oled_menu_current->contents[pos].func_1(move);
+		oled_menu_arborescence_add(move);
 	}
 	void oled_menu_click_2_set(oled_menu_move move){ 				// db click bp 2
 		#ifdef DEBUG
@@ -353,7 +410,8 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 		#endif		
 		if (oled_display_mod != oled_display_menu) return;
 		int pos = oled_menu_current->getPos();
-		oled_menu_current->contents[pos].func_2(true, move);
+		oled_menu_current->contents[pos].func_2(move);
+		oled_menu_arborescence_add(move);
 	}
 #ifdef FUNC_ITEM_3
 	void oled_menu_click_3_set(oled_menu_move move){ 				// db click bp 3
@@ -362,7 +420,8 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 		#endif
 		if (oled_display_mod != oled_display_menu) return;
 		int pos = oled_menu_current->getPos();
-		oled_menu_current->contents[pos].func_3(true, move);
+		oled_menu_current->contents[pos].func_3(move);
+		oled_menu_arborescence_add(move);
 	}
 #endif	
 #ifdef FUNC_ITEM_4
@@ -372,7 +431,8 @@ void oled_menu_click_initMenu(oled_menu_create * m){
 		#endif		
 		if (oled_display_mod != oled_display_menu) return;
 		int pos = oled_menu_current->getPos();
-		oled_menu_current->contents[pos].func_4(true, move);
+		oled_menu_current->contents[pos].func_4(move);
+		oled_menu_arborescence_add(move);
 	}
 #endif
 
@@ -390,7 +450,7 @@ void oled_menu_long_click_1(oled_menu_move move) { 			// longClick bp 1
 
 	for(int i=0; i < oled_menu_longClick_1_count ; i++) {
 		oled_menu_longClick_1_list[i].func_1(false, move);
-		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_1_list[i].func_1(true, move);
+		if (isSelectedMenu(oled_menu_lg)) {oled_menu_longClick_1_list[i].func_1(true, move);oled_menu_arborescence_add(move);}
 	}	
 }
 
@@ -400,7 +460,7 @@ void oled_menu_long_click_2(oled_menu_move move) { 			// longClick bp 2
 
 	for(int i=0; i < oled_menu_longClick_2_count ; i++) {
 		oled_menu_longClick_2_list[i].func_1(false, move);
-		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_2_list[i].func_1(true, move);
+		if (isSelectedMenu(oled_menu_lg)) {oled_menu_longClick_2_list[i].func_1(true, move);oled_menu_arborescence_add(move);}
 	}	
 }
 #ifdef FUNC_ITEM_3
@@ -410,7 +470,7 @@ void oled_menu_long_click_3(oled_menu_move move) { 			// longClick bp 3
 
 	for(int i=0; i < oled_menu_longClick_3_count ; i++) {
 		oled_menu_longClick_3_list[i].func_1(false, move);
-		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_3_list[i].func_1(true, move);
+		if (isSelectedMenu(oled_menu_lg)) {oled_menu_longClick_3_list[i].func_1(true, move);oled_menu_arborescence_add(move);}
 	}	
 }
 #endif	
@@ -421,7 +481,7 @@ void oled_menu_long_click_4(oled_menu_move move) { 			// longClick bp 4
 
 	for(int i=0; i < oled_menu_longClick_4_count ; i++) {
 		oled_menu_longClick_4_list[i].func_1(false, move);
-		if (isSelectedMenu(oled_menu_lg)) oled_menu_longClick_4_list[i].func_1(true, move);
+		if (isSelectedMenu(oled_menu_lg)) {oled_menu_longClick_4_list[i].func_1(true, move);oled_menu_arborescence_add(move);}
 	}	
 }
 #endif
@@ -431,7 +491,7 @@ void oled_menu_long_click_4(oled_menu_move move) { 			// longClick bp 4
 // CREATION DES ITEMS + FONCTION ATTRIBUER AUX ITEMS 
 // *****************************************************************************************************
 
-void om_tf(boolean exec, oled_menu_move move){
+void om_tf(oled_menu_move move){
 	int pos = oled_menu_current->getPos();
 	String mName = oled_menu_current->name;
 	String iName = oled_menu_current->contents[pos].name;

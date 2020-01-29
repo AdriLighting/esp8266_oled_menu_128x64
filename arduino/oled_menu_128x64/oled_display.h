@@ -1,12 +1,9 @@
 #ifndef OLED_DISPLAY_H
    	#define OLED_DISPLAY_H
 	#include <Arduino.h>
-	
-	// // #define MODULE_TEST
-	// #define MODULE_2RINGS
-	// // #define MODULE_DA
 
-	#define MODULE_DEFAULT
+	
+	#define MODULE_DA
 
 	#ifdef MODULE_DEFAULT
 		#define ADAFRUIT_SD1306_LIB
@@ -40,7 +37,9 @@
 
 	#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
-
+    extern String oled_menu_starterItem;
+	extern int oled_menu_pos;
+   
 	enum oled_display_mods { 
 	    oled_display_menu,
 	    oled_display_disp,
@@ -70,13 +69,13 @@
 	struct oled_menu_item {
 		char * name;
 		char * subTitle;
-		void (*func_1)(boolean exec, oled_menu_move move);
-		void (*func_2)(boolean exec, oled_menu_move move);
+		void (*func_1)(oled_menu_move move);
+		void (*func_2)(oled_menu_move move);
 		#ifdef FUNC_ITEM_3
-		void (*func_3)(boolean exec, oled_menu_move move);	
+		void (*func_3)(oled_menu_move move);	
 		#endif	
 		#ifdef FUNC_ITEM_4
-		void (*func_4)(boolean exec, oled_menu_move move);
+		void (*func_4)(oled_menu_move move);
 		#endif		
 	} ;
 
@@ -84,13 +83,13 @@
 	struct oled_menu_def {
 		String name;
 		String subTitle;
-		void (*func_1)(boolean exec, oled_menu_move move);
-		void (*func_2)(boolean exec, oled_menu_move move);
+		void (*func_1)(oled_menu_move move);
+		void (*func_2)(oled_menu_move move);
 		#ifdef FUNC_ITEM_3
-		void (*func_3)(boolean exec, oled_menu_move move);	
+		void (*func_3)(oled_menu_move move);	
 		#endif	
 		#ifdef FUNC_ITEM_4
-		void (*func_4)(boolean exec, oled_menu_move move);
+		void (*func_4)(oled_menu_move move);
 		#endif
 	};
 
@@ -111,10 +110,8 @@
 			boolean 			clickmoveUp;
 			boolean 			clickmoveDown;
 			int 				clickmoveFunc;
+			String lastSelectedItem;
 
-			String starterItem;
-			int pos;
-			
 			int cursor 			= 0;
 			int itemsCnt 		= 0;
 			int startItem		= 0;
@@ -139,6 +136,8 @@
 	};
 
 
+	extern oled_menu_create * oled_menu_old;
+	extern oled_menu_create * oled_menu_main;
 	extern oled_menu_create * oled_menu_lg;
 	extern oled_menu_create * oled_menu_current;
 	extern oled_menu_create * oled_menu_array[];
@@ -199,7 +198,7 @@
 	// *****************************************************************************************************
 
 
-	void om_tf(boolean exec, oled_menu_move move);
+	void om_tf(oled_menu_move move);
 
 	void oled_clear();
 
