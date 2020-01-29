@@ -5,7 +5,8 @@ little libraires for esp8226.
 create multiple menu and sebMenu for the oled screen 128x64 monochrome.
 
 Push button management for navigation and running functions.
-/*
+
+
 	24/01/2020 15:03:48 : mise en forme de mes fonction en vrac pour un ecran oled
 
 	MICRO LIBRAIRIE POUR CREATION DE MENU POUR L'ECRAN OLED 128x64 MONOCHROME
@@ -69,4 +70,3 @@ Push button management for navigation and running functions.
 
 		
 
-*/
