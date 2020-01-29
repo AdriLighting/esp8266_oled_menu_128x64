@@ -68,6 +68,5 @@ Push button management for navigation and running functions.
 				oled_menu_create_items_v2(list_m1, ARRAY_SIZE(list_m1), oled_menu_home);  
 
 		
-					boolean exec 			: servira uniquement pour une fonction declencher pour un LONG CLICK sur un bouton poussoir.
-												(a modifier par lavenir si je trouve le moyen de passer le pointeur d'un objet dans la data d'une structure)	
+
 */
