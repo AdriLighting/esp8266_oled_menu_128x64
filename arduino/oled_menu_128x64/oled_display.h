@@ -33,8 +33,8 @@
     #ifdef SD1306WIRE_LIB
         #include "SSD1306Wire.h"        // legacy: #include "SSD1306.h"
         extern SSD1306Wire display;
-    #endif
 
+    #endif
 	#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
     extern String oled_menu_starterItem;
@@ -110,7 +110,9 @@
 			boolean 			clickmoveUp;
 			boolean 			clickmoveDown;
 			int 				clickmoveFunc;
+
 			String lastSelectedItem;
+			boolean printMove = false;
 
 			int cursor 			= 0;
 			int itemsCnt 		= 0;
@@ -127,16 +129,22 @@
 			void 	setPos(boolean up, int size);
 			int 	getPos();
 			String 	getItemName();
+			String 	getMenuName();
 			void 	set_subtitle (String str);
-			void 	print();
+			String 	print();
+			String 	printCurrentItemPos();
 			void 	create_menu();
 			void 	init_menu();
 			void 	create_menu_items() ;
 			void 	create_menu_header(char * title, int currPos, int starMenu, int starHeader, int titleLeft, int subTitleLeft);
 	};
 
+	void oled_menu_create_print(oled_menu_create * m);
+	void oled_menu_create_printCurrentItemPos(oled_menu_create * m);
 
-	extern oled_menu_create * oled_menu_old;
+	int 	oled_menu_arborescence_getPos();
+	String 	oled_menu_arborescence_print(int mod);
+
 	extern oled_menu_create * oled_menu_main;
 	extern oled_menu_create * oled_menu_lg;
 	extern oled_menu_create * oled_menu_current;
